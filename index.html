@@ -1,139 +1,45 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Jonas' Game of Life</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Jonas' Game of Life</title>
 <style>
-:root{color-scheme:dark;--bg:#090b10;--panel:#121722;--line:#293243;--text:#f5f7fb;--muted:#9ca8ba;--alive:#67e8f9;--accent:#8b5cf6;--danger:#ef4444}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;overscroll-behavior:none}body{min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}main{max-width:1000px;margin:auto;padding:12px;display:grid;gap:10px}.top{display:flex;gap:10px;align-items:end;justify-content:space-between;flex-wrap:wrap}h1{font-size:clamp(20px,5vw,30px);margin:0}.stats{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}.run-status{margin-top:3px;color:var(--text)}.patterns{margin-top:3px;color:var(--alive)}.board{position:relative;width:100%;height:min(68dvh,700px);min-height:360px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#05070a;touch-action:none}.board.running{border-color:var(--accent)}canvas{width:100%;height:100%;display:block;touch-action:none}.controls{display:grid;gap:8px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit}button,select{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:10px 13px;min-height:44px}button.primary{background:var(--accent);border-color:var(--accent);font-weight:700}button:active{transform:translateY(1px)}button:disabled{opacity:.5}label{display:flex;align-items:center;gap:8px;color:var(--muted)}input[type=range]{width:min(220px,42vw)}.rule{padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--muted)}.rule input{width:68px;background:#090b10;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px}.hint{font-size:13px;color:var(--muted)}#error{display:none;border:1px solid var(--danger);background:#2a1012;color:#fecaca;border-radius:10px;padding:10px;font-size:14px}#error.show{display:block}@media(max-width:600px){main{padding:8px}.board{height:58dvh;min-height:330px}.row button{flex:1}.rule{width:100%;display:flex;justify-content:space-between;align-items:center}.stats{text-align:left}}
-</style>
-</head>
-<body><main>
-<div class="top"><div><h1>Jonas' Game of Life</h1><div class="hint" id="hint">Draw cells with your finger, then press Play.</div></div><div class="stats"><div><span id="generation">Gen 0</span> · <span id="population">0 alive</span></div><div class="run-status" id="runStatus" aria-live="polite">Ready</div><div class="patterns" id="patterns" aria-live="polite">Patterns: none</div></div></div>
+:root{color-scheme:dark;--bg:#090b10;--panel:#121722;--line:#293243;--text:#f5f7fb;--muted:#9ca8ba;--alive:#67e8f9;--accent:#8b5cf6;--danger:#ef4444}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;overscroll-behavior:none}body{min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}main{max-width:1000px;margin:auto;padding:10px;display:grid;gap:9px}.top{display:flex;gap:10px;align-items:end;justify-content:space-between;flex-wrap:wrap}h1{font-size:clamp(20px,5vw,30px);margin:0}.hint{font-size:13px;color:var(--muted)}.stats{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}.run-status{margin-top:3px;color:var(--text)}.patterns{margin-top:3px;color:var(--alive)}.board{width:100%;height:min(61dvh,650px);min-height:330px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#05070a;touch-action:none}.board.running{border-color:var(--accent)}canvas{width:100%;height:100%;display:block;touch-action:none}.controls{display:grid;gap:8px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit}button,select{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:10px 13px;min-height:44px}button.primary,.tool.active{background:var(--accent);border-color:var(--accent);font-weight:700}button:disabled{opacity:.45}label{display:flex;align-items:center;gap:8px;color:var(--muted)}input[type=range]{width:min(220px,42vw)}.rule{padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--muted)}.rule input{width:68px;background:#090b10;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px}.toolbox-wrap{display:grid;gap:5px}.toolbox-title{font-size:13px;color:var(--muted)}.toolbox{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin}.tool{white-space:nowrap;min-height:40px;padding:8px 11px}.tool.big{font-weight:600}#error{display:none;border:1px solid var(--danger);background:#2a1012;color:#fecaca;border-radius:10px;padding:10px;font-size:14px}#error.show{display:block}@media(max-width:600px){main{padding:7px}.board{height:52dvh;min-height:315px}.row.main-actions button{flex:1}.rule{width:100%;display:flex;justify-content:space-between;align-items:center}.stats{text-align:left}}
+</style></head><body><main>
+<div class="top"><div><h1>Jonas' Game of Life</h1><div class="hint" id="hint">Draw cells, or choose a pattern and tap the board.</div></div><div class="stats"><div><span id="generation">Gen 0</span> · <span id="population">0 alive</span></div><div class="run-status" id="runStatus" aria-live="polite">Ready</div><div class="patterns" id="patterns" aria-live="polite">Patterns: none</div></div></div>
 <div id="error" role="alert" aria-live="assertive"></div>
 <div class="board" id="board"><canvas id="life"></canvas></div>
 <div class="controls">
-<div class="row"><button class="primary" id="play">▶ Play</button><button id="step">Step</button><button id="random">Random</button><button id="clear">Clear</button></div>
+<div class="row main-actions"><button class="primary" id="play">▶ Play</button><button id="step">Step</button><button id="random">Random</button><button id="clear">Clear</button></div>
+<div class="toolbox-wrap"><div class="toolbox-title">Pattern toolbox — choose one, then tap the board</div><div class="toolbox" id="toolbox" aria-label="Pattern toolbox"></div></div>
 <div class="row"><label>Rule <select id="preset"><option value="3/23">Conway's Life — B3/S23</option><option value="36/23">HighLife — B36/S23</option><option value="2/">Seeds — B2/S</option><option value="3678/34678">Day & Night — B3678/S34678</option><option value="3/012345678">Life Without Death</option><option value="3/12345">Maze — B3/S12345</option><option value="custom">Custom</option></select></label><span class="rule">B <input id="birth" value="3" inputmode="numeric" aria-label="Birth rule"> / S <input id="survive" value="23" inputmode="numeric" aria-label="Survival rule"></span></div>
 <div class="row"><label>Speed <input id="speed" type="range" min="1" max="30" value="8"><span id="speedText">8/s</span></label><label>Cell size <input id="cellSize" type="range" min="7" max="24" value="14"></label></div>
-</div>
-</main>
+</div></main>
 <script type="module">
-import { findRepeatPeriod, nextGeneration, population, parseRule } from './life.mjs';
-import { recognizePatterns } from './patterns.mjs';
-
-const log = (...args) => console.log('[GameOfLife]', ...args);
-const logError = (context, error) => console.error('[GameOfLife]', context, error);
-const errorBox = document.querySelector('#error');
-
-function showError(context, error) {
-  running = false;
-  drawing = false;
-  playBtn.textContent = '▶ Play';
-  board.classList.remove('running');
-  hint.textContent = 'Paused because something broke. You can draw again.';
-  runStatus.textContent = `Stopped after ${runGenerations} generation${runGenerations === 1 ? '' : 's'} this run`;
-  const message = error instanceof Error ? error.message : String(error);
-  errorBox.textContent = `Something broke: ${context}. ${message}`;
-  errorBox.classList.add('show');
-  logError(context, error);
-}
-
-function clearError() {
-  errorBox.textContent = '';
-  errorBox.classList.remove('show');
-}
-
-window.addEventListener('error', event => showError('unexpected browser error', event.error ?? event.message));
-window.addEventListener('unhandledrejection', event => showError('unexpected promise error', event.reason));
-
-const canvas = document.querySelector('#life');
-const ctx = canvas.getContext('2d');
-if (!ctx) throw new Error('Canvas 2D is not supported by this browser');
-
-const playBtn=document.querySelector('#play'),genEl=document.querySelector('#generation'),popEl=document.querySelector('#population');
-const preset=document.querySelector('#preset'),birthInput=document.querySelector('#birth'),surviveInput=document.querySelector('#survive'),speed=document.querySelector('#speed'),speedText=document.querySelector('#speedText'),cellSizeInput=document.querySelector('#cellSize');
-const board=document.querySelector('#board'),hint=document.querySelector('#hint'),runStatus=document.querySelector('#runStatus'),patternsEl=document.querySelector('#patterns');
+import {findRepeatPeriod,nextGeneration,population,parseRule} from './life.mjs';
+import {recognizePatterns} from './patterns.mjs';
+import {TOOLBOX_PATTERNS,placePattern} from './toolbox.mjs';
+const log=(...a)=>console.log('[GameOfLife]',...a),logError=(c,e)=>console.error('[GameOfLife]',c,e);
+const q=s=>document.querySelector(s),canvas=q('#life'),ctx=canvas.getContext('2d'),playBtn=q('#play'),genEl=q('#generation'),popEl=q('#population'),preset=q('#preset'),birthInput=q('#birth'),surviveInput=q('#survive'),speed=q('#speed'),speedText=q('#speedText'),cellSizeInput=q('#cellSize'),board=q('#board'),hint=q('#hint'),runStatus=q('#runStatus'),patternsEl=q('#patterns'),errorBox=q('#error'),toolbox=q('#toolbox');
+if(!ctx)throw new Error('Canvas 2D is not supported by this browser');
 let cell=14,cols=0,rows=0,grid=new Uint8Array(),generation=0,running=false,last=0,drawing=false,paintValue=1,lastPaint='';
-let runGenerations=0,recentStates=[],lastPatternSummary='';
+let runGenerations=0,recentStates=[],lastPatternSummary='',selectedTool='Draw';
 const key=(x,y)=>y*cols+x;
-
-function makeGrid(c,r,old,oldCols,oldRows){const next=new Uint8Array(c*r);const mc=Math.min(oldCols,c),mr=Math.min(oldRows,r);for(let y=0;y<mr;y++)for(let x=0;x<mc;x++)next[y*c+x]=old[y*oldCols+x];return next}
-
-function resize(){try{clearError();const rect=canvas.parentElement.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);if(rect.width<1||rect.height<1)return;canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const old=grid,oldCols=cols,oldRows=rows,c=Math.max(1,Math.floor(rect.width/cell)),r=Math.max(1,Math.floor(rect.height/cell));grid=makeGrid(c,r,old,oldCols,oldRows);cols=c;rows=r;if(running){recentStates=[grid.slice()];runGenerations=0;runStatus.textContent='Running · 0 generations this run';log('repeat history reset after resize')}draw()}catch(error){showError('resizing the board',error)}}
-
-function isConwayRule(){const birth=[...parseRule(birthInput.value)].sort().join('');const survive=[...parseRule(surviveInput.value)].sort().join('');return birth==='3'&&survive==='23'}
-
-function updatePatternDisplay(){
-  if(!isConwayRule()){
-    patternsEl.textContent='Patterns: Conway B3/S23 only';
-    lastPatternSummary='';
-    return;
-  }
-  const matches=recognizePatterns(grid,cols,rows);
-  const summary=matches.length?matches.map(({name,count})=>count===1?name:`${count}× ${name}`).join(' · '):'none';
-  patternsEl.textContent=`Patterns: ${summary}`;
-  if(summary!==lastPatternSummary){
-    if(matches.length)log('patterns recognized',matches);
-    lastPatternSummary=summary;
-  }
-}
-
-function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.fillStyle='#05070a';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#18202c';ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=cols;x++){ctx.moveTo(x*cell+.5,0);ctx.lineTo(x*cell+.5,rows*cell)}for(let y=0;y<=rows;y++){ctx.moveTo(0,y*cell+.5);ctx.lineTo(cols*cell,y*cell+.5)}ctx.stroke();ctx.fillStyle='#67e8f9';for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)if(grid[key(x,y)])ctx.fillRect(x*cell+1,y*cell+1,cell-1,cell-1);genEl.textContent=`Gen ${generation}`;popEl.textContent=`${population(grid)} alive`;updatePatternDisplay()}
-
-function stopRun(reason, period = 0) {
-  running = false;
-  drawing = false;
-  playBtn.textContent = '▶ Play';
-  board.classList.remove('running');
-  hint.textContent = 'Stopped. You can draw cells again.';
-  if (reason === 'repeat') {
-    runStatus.textContent = `Stopped: repeats every ${period} generation${period === 1 ? '' : 's'} · ${runGenerations} this run`;
-    log('simulation auto-stopped on repeating state',{period,runGenerations,generation,population:population(grid)});
-  } else {
-    runStatus.textContent = `Paused · ${runGenerations} generation${runGenerations === 1 ? '' : 's'} this run`;
-    log('simulation paused',{runGenerations,generation,population:population(grid)});
-  }
-}
-
-function startRun() {
-  clearError();
-  parseRule(birthInput.value);
-  parseRule(surviveInput.value);
-  running = true;
-  drawing = false;
-  runGenerations = 0;
-  recentStates = [grid.slice()];
-  last = performance.now();
-  playBtn.textContent = '⏸ Pause';
-  board.classList.add('running');
-  hint.textContent = 'Running — pause before drawing.';
-  runStatus.textContent = 'Running · 0 generations this run';
-  log('simulation started',{generation,population:population(grid)});
-}
-
-function tick(trackRun=false){try{clearError();parseRule(birthInput.value);parseRule(surviveInput.value);const next=nextGeneration(grid,cols,rows,birthInput.value,surviveInput.value);grid=next;generation++;if(trackRun){runGenerations++;const period=findRepeatPeriod(grid,recentStates,3);recentStates.push(grid.slice());if(recentStates.length>3)recentStates.shift();runStatus.textContent=`Running · ${runGenerations} generation${runGenerations === 1 ? '' : 's'} this run`;draw();if(period)stopRun('repeat',period);return}draw()}catch(error){showError('calculating the next generation',error)}}
-
+function showError(context,error){running=false;drawing=false;playBtn.textContent='▶ Play';board.classList.remove('running');hint.textContent='Paused because something broke.';runStatus.textContent=`Stopped after ${runGenerations} this run`;const msg=error instanceof Error?error.message:String(error);errorBox.textContent=`Something broke: ${context}. ${msg}`;errorBox.classList.add('show');logError(context,error)}
+function clearError(){errorBox.textContent='';errorBox.classList.remove('show')}
+window.addEventListener('error',e=>showError('unexpected browser error',e.error??e.message));window.addEventListener('unhandledrejection',e=>showError('unexpected promise error',e.reason));
+function makeGrid(c,r,old,oc,or){const n=new Uint8Array(c*r),mc=Math.min(oc,c),mr=Math.min(or,r);for(let y=0;y<mr;y++)for(let x=0;x<mc;x++)n[y*c+x]=old[y*oc+x];return n}
+function resize(){try{const rect=board.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);if(rect.width<1||rect.height<1)return;canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const old=grid,oc=cols,or=rows,c=Math.max(1,Math.floor(rect.width/cell)),r=Math.max(1,Math.floor(rect.height/cell));grid=makeGrid(c,r,old,oc,or);cols=c;rows=r;draw()}catch(e){showError('resizing the board',e)}}
+function isConway(){return [...parseRule(birthInput.value)].sort().join('')==='3'&&[...parseRule(surviveInput.value)].sort().join('')==='23'}
+function updatePatternDisplay(){if(!isConway()){patternsEl.textContent='Patterns: Conway B3/S23 only';lastPatternSummary='';return}const m=recognizePatterns(grid,cols,rows),s=m.length?m.map(({name,count})=>count===1?name:`${count}× ${name}`).join(' · '):'none';patternsEl.textContent=`Patterns: ${s}`;if(s!==lastPatternSummary){if(m.length)log('patterns recognized',m);lastPatternSummary=s}}
+function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.fillStyle='#05070a';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#18202c';ctx.beginPath();for(let x=0;x<=cols;x++){ctx.moveTo(x*cell+.5,0);ctx.lineTo(x*cell+.5,rows*cell)}for(let y=0;y<=rows;y++){ctx.moveTo(0,y*cell+.5);ctx.lineTo(cols*cell,y*cell+.5)}ctx.stroke();ctx.fillStyle='#67e8f9';for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)if(grid[key(x,y)])ctx.fillRect(x*cell+1,y*cell+1,cell-1,cell-1);genEl.textContent=`Gen ${generation}`;popEl.textContent=`${population(grid)} alive`;updatePatternDisplay()}
+function stopRun(reason,period=0){running=false;drawing=false;playBtn.textContent='▶ Play';board.classList.remove('running');hint.textContent=selectedTool==='Draw'?'Stopped. You can draw again.':`${selectedTool} selected — tap to place.`;runStatus.textContent=reason==='repeat'?`Stopped: repeats every ${period} generation${period===1?'':'s'} · ${runGenerations} this run`:`Paused · ${runGenerations} generation${runGenerations===1?'':'s'} this run`;log('simulation stopped',{reason,period,runGenerations,generation})}
+function startRun(){clearError();parseRule(birthInput.value);parseRule(surviveInput.value);running=true;drawing=false;runGenerations=0;recentStates=[grid.slice()];last=performance.now();playBtn.textContent='⏸ Pause';board.classList.add('running');hint.textContent='Running — pause before drawing or placing patterns.';runStatus.textContent='Running · 0 generations this run';log('simulation started',{generation,population:population(grid)})}
+function tick(track=false){try{const next=nextGeneration(grid,cols,rows,birthInput.value,surviveInput.value);grid=next;generation++;if(track){runGenerations++;const period=findRepeatPeriod(grid,recentStates,3);recentStates.push(grid.slice());if(recentStates.length>3)recentStates.shift();runStatus.textContent=`Running · ${runGenerations} generation${runGenerations===1?'':'s'} this run`;draw();if(period)stopRun('repeat',period)}else draw()}catch(e){showError('calculating next generation',e)}}
 function loop(t){if(running&&t-last>=1000/+speed.value){tick(true);last=t}requestAnimationFrame(loop)}
-function point(e){const r=canvas.getBoundingClientRect();return [Math.floor((e.clientX-r.left)/cell),Math.floor((e.clientY-r.top)/cell)]}
-function paint(e){const [x,y]=point(e);if(x<0||y<0||x>=cols||y>=rows)return;const k=key(x,y);if(k===lastPaint)return;grid[k]=paintValue;lastPaint=k;draw()}
-
-canvas.addEventListener('pointerdown',e=>{try{e.preventDefault();if(running){drawing=false;return}canvas.setPointerCapture(e.pointerId);drawing=true;lastPaint='';const [x,y]=point(e);if(x>=0&&y>=0&&x<cols&&y<rows)paintValue=grid[key(x,y)]?0:1;paint(e)}catch(error){showError('drawing a cell',error)}});
-canvas.addEventListener('pointermove',e=>{if(drawing&&!running)paint(e)});canvas.addEventListener('pointerup',()=>drawing=false);canvas.addEventListener('pointercancel',()=>drawing=false);
-playBtn.addEventListener('click',()=>{try{if(running)stopRun('manual');else startRun()}catch(error){showError('starting the simulation',error)}});
-document.querySelector('#step').addEventListener('click',()=>{if(!running)tick(false)});
-document.querySelector('#clear').addEventListener('click',()=>{grid.fill(0);generation=0;running=false;drawing=false;runGenerations=0;recentStates=[];playBtn.textContent='▶ Play';board.classList.remove('running');hint.textContent='Draw cells with your finger, then press Play.';runStatus.textContent='Ready';clearError();draw();log('board cleared')});
-document.querySelector('#random').addEventListener('click',()=>{if(running)return;for(let i=0;i<grid.length;i++)grid[i]=Math.random()<.22?1:0;generation=0;runGenerations=0;recentStates=[];runStatus.textContent='Ready';clearError();draw();log('random board generated',{population:population(grid)})});
-preset.addEventListener('change',()=>{if(preset.value==='custom')return;[birthInput.value,surviveInput.value]=preset.value.split('/');clearError();draw();log('rule changed',preset.value)});
-[birthInput,surviveInput].forEach(i=>i.addEventListener('input',()=>{i.value=i.value.replace(/[^0-8]/g,'');preset.value='custom';clearError();draw()}));
-speed.addEventListener('input',()=>speedText.textContent=`${speed.value}/s`);
-cellSizeInput.addEventListener('input',()=>{if(running)return;cell=+cellSizeInput.value;resize()});
-
-try {
-  new ResizeObserver(resize).observe(canvas.parentElement);
-  requestAnimationFrame(loop);
-  log('app initialized');
-} catch (error) {
-  showError('starting the app', error);
-}
+function point(e){const r=canvas.getBoundingClientRect();return[Math.floor((e.clientX-r.left)/cell),Math.floor((e.clientY-r.top)/cell)]}
+function paint(e){const[x,y]=point(e);if(x<0||y<0||x>=cols||y>=rows)return;const k=key(x,y);if(k===lastPaint)return;grid[k]=paintValue;lastPaint=k;draw()}
+function selectTool(name){selectedTool=name;for(const b of toolbox.querySelectorAll('button'))b.classList.toggle('active',b.dataset.tool===name);hint.textContent=name==='Draw'?'Draw cells with your finger, then press Play.':`${name} selected — tap the board to place it.`;log('tool selected',name)}
+function buildToolbox(){const draw=document.createElement('button');draw.type='button';draw.textContent='✏ Draw';draw.dataset.tool='Draw';draw.className='tool active';toolbox.append(draw);for(const p of TOOLBOX_PATTERNS){const b=document.createElement('button');b.type='button';b.textContent=p.name;b.dataset.tool=p.name;b.className='tool'+(p.name==='Pulsar'||p.name==='Gosper Glider Gun'?' big':'');toolbox.append(b)}toolbox.addEventListener('click',e=>{const b=e.target.closest('button[data-tool]');if(b&&!running)selectTool(b.dataset.tool)})}
+canvas.addEventListener('pointerdown',e=>{try{e.preventDefault();if(running)return;const[x,y]=point(e);if(selectedTool!=='Draw'){const p=TOOLBOX_PATTERNS.find(v=>v.name===selectedTool);if(!p)throw new Error(`Unknown selected pattern: ${selectedTool}`);const ox=x-Math.floor(p.width/2),oy=y-Math.floor(p.height/2),placed=placePattern(grid,cols,rows,p,ox,oy);generation=0;runGenerations=0;recentStates=[];draw();runStatus.textContent=`Placed ${selectedTool}`;log('pattern placed',{name:selectedTool,placed,x,y});return}canvas.setPointerCapture(e.pointerId);drawing=true;lastPaint='';if(x>=0&&y>=0&&x<cols&&y<rows)paintValue=grid[key(x,y)]?0:1;paint(e)}catch(err){showError('editing the board',err)}});
+canvas.addEventListener('pointermove',e=>{if(drawing&&!running&&selectedTool==='Draw')paint(e)});canvas.addEventListener('pointerup',()=>drawing=false);canvas.addEventListener('pointercancel',()=>drawing=false);
+playBtn.addEventListener('click',()=>{try{running?stopRun('manual'):startRun()}catch(e){showError('starting simulation',e)}});q('#step').addEventListener('click',()=>{if(!running)tick(false)});q('#clear').addEventListener('click',()=>{grid.fill(0);generation=0;running=false;runGenerations=0;recentStates=[];playBtn.textContent='▶ Play';board.classList.remove('running');runStatus.textContent='Ready';draw();log('board cleared')});q('#random').addEventListener('click',()=>{if(running)return;for(let i=0;i<grid.length;i++)grid[i]=Math.random()<.22?1:0;generation=0;runGenerations=0;recentStates=[];runStatus.textContent='Ready';draw();log('random board generated')});preset.addEventListener('change',()=>{if(preset.value!=='custom')[birthInput.value,surviveInput.value]=preset.value.split('/');draw()});[birthInput,surviveInput].forEach(i=>i.addEventListener('input',()=>{i.value=i.value.replace(/[^0-8]/g,'');preset.value='custom';draw()}));speed.addEventListener('input',()=>speedText.textContent=`${speed.value}/s`);cellSizeInput.addEventListener('input',()=>{if(!running){cell=+cellSizeInput.value;resize()}});
+try{buildToolbox();new ResizeObserver(resize).observe(board);requestAnimationFrame(loop);log('app initialized')}catch(e){showError('starting app',e)}
 </script></body></html>
