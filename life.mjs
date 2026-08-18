@@ -46,3 +46,30 @@ export function population(grid) {
   for (const value of grid) total += value;
   return total;
 }
+
+export function gridsEqual(a, b) {
+  if (!(a instanceof Uint8Array) || !(b instanceof Uint8Array)) {
+    throw new TypeError('grids must be Uint8Array values');
+  }
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+export function findRepeatPeriod(current, previousStates, maxLookback = 3) {
+  if (!(current instanceof Uint8Array)) throw new TypeError('current must be a Uint8Array');
+  if (!Array.isArray(previousStates)) throw new TypeError('previousStates must be an array');
+  if (!Number.isInteger(maxLookback) || maxLookback < 1) {
+    throw new Error('maxLookback must be a positive integer');
+  }
+
+  const start = Math.max(0, previousStates.length - maxLookback);
+  for (let i = previousStates.length - 1; i >= start; i--) {
+    if (gridsEqual(current, previousStates[i])) {
+      return previousStates.length - i;
+    }
+  }
+  return 0;
+}
