@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Jonas' Game of Life</title>
+<style>
+:root{color-scheme:dark;--bg:#090b10;--panel:#121722;--line:#293243;--text:#f5f7fb;--muted:#9ca8ba;--alive:#67e8f9;--accent:#8b5cf6}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;overscroll-behavior:none}body{min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}main{max-width:1000px;margin:auto;padding:12px;display:grid;gap:10px}.top{display:flex;gap:10px;align-items:end;justify-content:space-between;flex-wrap:wrap}h1{font-size:clamp(20px,5vw,30px);margin:0}.stats{color:var(--muted);font-variant-numeric:tabular-nums}.board{position:relative;width:100%;height:min(68dvh,700px);min-height:360px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#05070a;touch-action:none}canvas{width:100%;height:100%;display:block;touch-action:none}.controls{display:grid;gap:8px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit}button,select{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:10px 13px;min-height:44px}button.primary{background:var(--accent);border-color:var(--accent);font-weight:700}button:active{transform:translateY(1px)}label{display:flex;align-items:center;gap:8px;color:var(--muted)}input[type=range]{width:min(220px,42vw)}.rule{padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--muted)}.rule input{width:68px;background:#090b10;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px}.hint{font-size:13px;color:var(--muted)}@media(max-width:600px){main{padding:8px}.board{height:58dvh;min-height:330px}.row button{flex:1}.rule{width:100%;display:flex;justify-content:space-between;align-items:center}}
+</style>
+</head>
+<body><main>
+<div class="top"><div><h1>Jonas' Game of Life</h1><div class="hint">Draw cells with your finger, then press Play.</div></div><div class="stats"><span id="generation">Gen 0</span> · <span id="population">0 alive</span></div></div>
+<div class="board"><canvas id="life"></canvas></div>
+<div class="controls">
+<div class="row"><button class="primary" id="play">▶ Play</button><button id="step">Step</button><button id="random">Random</button><button id="clear">Clear</button></div>
+<div class="row"><label>Rule <select id="preset"><option value="3/23">Conway's Life — B3/S23</option><option value="36/23">HighLife — B36/S23</option><option value="2/">Seeds — B2/S</option><option value="3678/34678">Day & Night — B3678/S34678</option><option value="3/012345678">Life Without Death</option><option value="3/12345">Maze — B3/S12345</option><option value="custom">Custom</option></select></label><span class="rule">B <input id="birth" value="3" inputmode="numeric"> / S <input id="survive" value="23" inputmode="numeric"></span></div>
+<div class="row"><label>Speed <input id="speed" type="range" min="1" max="30" value="8"><span id="speedText">8/s</span></label><label>Cell size <input id="cellSize" type="range" min="7" max="24" value="14"></label></div>
+</div>
+</main><script>
+const canvas=document.querySelector('#life'),ctx=canvas.getContext('2d');
+const playBtn=document.querySelector('#play'),genEl=document.querySelector('#generation'),popEl=document.querySelector('#population');
+const preset=document.querySelector('#preset'),birthInput=document.querySelector('#birth'),surviveInput=document.querySelector('#survive'),speed=document.querySelector('#speed'),speedText=document.querySelector('#speedText'),cellSizeInput=document.querySelector('#cellSize');
+let cell=14,cols=0,rows=0,grid=[],generation=0,running=false,last=0,drawing=false,paintValue=1,lastPaint='';
+const key=(x,y)=>y*cols+x;
+function makeGrid(c,r,old){const next=new Uint8Array(c*r);if(old){const mc=Math.min(cols,c),mr=Math.min(rows,r);for(let y=0;y<mr;y++)for(let x=0;x<mc;x++)next[y*c+x]=old[y*cols+x]}return next}
+function resize(){const rect=canvas.parentElement.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const old=grid,c=Math.floor(rect.width/cell),r=Math.floor(rect.height/cell);grid=makeGrid(c,r,old);cols=c;rows=r;draw()}
+function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.fillStyle='#05070a';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#18202c';ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=cols;x++){ctx.moveTo(x*cell+.5,0);ctx.lineTo(x*cell+.5,rows*cell)}for(let y=0;y<=rows;y++){ctx.moveTo(0,y*cell+.5);ctx.lineTo(cols*cell,y*cell+.5)}ctx.stroke();ctx.fillStyle='#67e8f9';for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)if(grid[key(x,y)])ctx.fillRect(x*cell+1,y*cell+1,cell-1,cell-1);updateStats()}
+function rules(){const parse=s=>new Set([...s].map(Number).filter(n=>n>=0&&n<=8));return [parse(birthInput.value),parse(surviveInput.value)]}
+function tick(){const next=new Uint8Array(grid.length),[birth,survive]=rules();for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){let n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;if(nx>=0&&nx<cols&&ny>=0&&ny<rows)n+=grid[key(nx,ny)]}const alive=grid[key(x,y)];next[key(x,y)]=alive?+survive.has(n):+birth.has(n)}grid=next;generation++;draw()}
+function updateStats(){let p=0;for(const v of grid)p+=v;genEl.textContent=`Gen ${generation}`;popEl.textContent=`${p} alive`}
+function loop(t){if(running&&t-last>=1000/+speed.value){tick();last=t}requestAnimationFrame(loop)}
+function point(e){const r=canvas.getBoundingClientRect();return [Math.floor((e.clientX-r.left)/cell),Math.floor((e.clientY-r.top)/cell)]}
+function paint(e){const [x,y]=point(e);if(x<0||y<0||x>=cols||y>=rows)return;const k=key(x,y);if(k===lastPaint)return;grid[k]=paintValue;lastPaint=k;draw()}
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();canvas.setPointerCapture(e.pointerId);drawing=true;lastPaint='';const [x,y]=point(e);if(x>=0&&y>=0&&x<cols&&y<rows)paintValue=grid[key(x,y)]?0:1;paint(e)});
+canvas.addEventListener('pointermove',e=>{if(drawing)paint(e)});canvas.addEventListener('pointerup',()=>drawing=false);canvas.addEventListener('pointercancel',()=>drawing=false);
+playBtn.addEventListener('click',()=>{running=!running;playBtn.textContent=running?'⏸ Pause':'▶ Play'});document.querySelector('#step').addEventListener('click',tick);
+document.querySelector('#clear').addEventListener('click',()=>{grid.fill(0);generation=0;running=false;playBtn.textContent='▶ Play';draw()});
+document.querySelector('#random').addEventListener('click',()=>{for(let i=0;i<grid.length;i++)grid[i]=Math.random()<.22?1:0;generation=0;draw()});
+preset.addEventListener('change',()=>{if(preset.value==='custom')return;[birthInput.value,surviveInput.value]=preset.value.split('/');draw()});
+[birthInput,surviveInput].forEach(i=>i.addEventListener('input',()=>{i.value=i.value.replace(/[^0-8]/g,'');preset.value='custom'}));speed.addEventListener('input',()=>speedText.textContent=`${speed.value}/s`);cellSizeInput.addEventListener('input',()=>{cell=+cellSizeInput.value;resize()});
+new ResizeObserver(resize).observe(canvas.parentElement);requestAnimationFrame(loop);
+</script></body></html>
