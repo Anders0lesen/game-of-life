@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nextGeneration, parseRule, population } from '../life.mjs';
+import { findRepeatPeriod, gridsEqual, nextGeneration, parseRule, population } from '../life.mjs';
 
 const grid = (rows) => {
   const height = rows.length;
@@ -63,4 +63,29 @@ test('invalid rule text is rejected loudly', () => {
 
 test('invalid grid dimensions are rejected loudly', () => {
   assert.throws(() => nextGeneration(new Uint8Array(3), 2, 2), /does not match/);
+});
+
+test('grid equality detects identical and different states', () => {
+  assert.equal(gridsEqual(new Uint8Array([1, 0, 1]), new Uint8Array([1, 0, 1])), true);
+  assert.equal(gridsEqual(new Uint8Array([1, 0, 1]), new Uint8Array([1, 1, 1])), false);
+  assert.equal(gridsEqual(new Uint8Array([1]), new Uint8Array([1, 0])), false);
+});
+
+test('repeat detection finds a stable period-1 state', () => {
+  const state = new Uint8Array([0, 1, 1, 0]);
+  assert.equal(findRepeatPeriod(state, [state.slice()], 3), 1);
+});
+
+test('repeat detection finds a period-2 oscillator', () => {
+  const a = new Uint8Array([1, 0, 1]);
+  const b = new Uint8Array([0, 1, 0]);
+  assert.equal(findRepeatPeriod(a, [a.slice(), b.slice()], 3), 2);
+});
+
+test('repeat detection ignores states older than the configured lookback', () => {
+  const a = new Uint8Array([1, 0]);
+  const b = new Uint8Array([0, 1]);
+  const c = new Uint8Array([1, 1]);
+  const d = new Uint8Array([0, 0]);
+  assert.equal(findRepeatPeriod(a, [a.slice(), b, c, d], 3), 0);
 });
