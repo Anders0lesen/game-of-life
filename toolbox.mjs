@@ -73,6 +73,18 @@ export function getToolboxPattern(name) {
   return pattern;
 }
 
+export function rotatePattern(pattern, quarterTurns = 1) {
+  if (!pattern || !Array.isArray(pattern.points)) throw new TypeError('pattern is invalid');
+  if (!Number.isInteger(quarterTurns)) throw new TypeError('quarterTurns must be an integer');
+  let turns = ((quarterTurns % 4) + 4) % 4;
+  let current = { name: pattern.name, width: pattern.width, height: pattern.height, points: pattern.points.map(([x, y]) => [x, y]) };
+  while (turns-- > 0) {
+    const nextPoints = current.points.map(([x, y]) => [current.height - 1 - y, x]);
+    current = { name: current.name, width: current.height, height: current.width, points: nextPoints };
+  }
+  return current;
+}
+
 export function placePattern(grid, cols, rows, pattern, originX, originY) {
   if (!(grid instanceof Uint8Array)) throw new TypeError('grid must be a Uint8Array');
   if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1 || grid.length !== cols * rows) throw new Error('grid dimensions are invalid');
