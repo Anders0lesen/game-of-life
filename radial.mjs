@@ -6,21 +6,24 @@ export function radialLayout(itemCount, anchorX, anchorY, viewportWidth, viewpor
   if (viewportWidth <= 0 || viewportHeight <= 0) throw new Error('viewport dimensions must be positive');
 
   const centreAngle = Math.atan2(viewportHeight / 2 - anchorY, viewportWidth / 2 - anchorX);
-  const innerCount = Math.min(6, itemCount);
-  const outerCount = itemCount - innerCount;
   const positions = [];
+  let remaining = itemCount, offset = 0, ringIndex = 0;
 
-  const ring = (count, radius, span, offset) => {
-    if (!count) return;
+  // Add rings as the toolbox grows instead of silently piling icons on top of each other.
+  while (remaining > 0) {
+    const capacity = 6 + ringIndex * 4;
+    const count = Math.min(capacity, remaining);
+    const radius = 78 + ringIndex * 58;
+    const span = Math.min(Math.PI * (0.78 + ringIndex * 0.14), Math.PI * 1.45);
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0.5 : i / (count - 1);
       const angle = centreAngle - span / 2 + t * span;
       positions[offset + i] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
     }
-  };
-
-  ring(innerCount, 78, Math.PI * 0.78, 0);
-  ring(outerCount, 136, Math.PI * 0.92, innerCount);
+    remaining -= count;
+    offset += count;
+    ringIndex++;
+  }
 
   const margin = 26;
   return positions.map(({ x, y }) => ({
