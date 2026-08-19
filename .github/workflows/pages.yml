@@ -23,92 +23,52 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Show run context
-        shell: bash
-        run: |
-          set -x
-          echo "event=${{ github.event_name }}"
-          echo "ref=${{ github.ref }}"
-          echo "sha=${{ github.sha }}"
-          echo "repository=${{ github.repository }}"
-          pwd
-          find . -maxdepth 3 -type f -not -path './.git/*' | sort
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Run unit tests
         shell: bash
         run: |
           set -o pipefail
           node --test tests/*.test.mjs 2>&1 | tee test-output.log
-
       - name: Validate enhancement JavaScript
         run: node --check ui-enhancements.js
-
       - name: Build exact Pages artifact
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf _site
-          mkdir _site
+          rm -rf _site && mkdir _site
           cp index.html life.mjs patterns.mjs toolbox.mjs radial.mjs ui-enhancements.js _site/
           python - <<'PY'
           from pathlib import Path
-          path = Path('_site/index.html')
-          text = path.read_text(encoding='utf-8')
-          needle = '<script type="module">'
-          if needle not in text:
-              raise SystemExit('ERROR: module-script insertion point not found')
-          text = text.replace(needle, '<script src="./ui-enhancements.js"></script>\n<script type="module">', 1)
-          path.write_text(text, encoding='utf-8')
+          path=Path('_site/index.html'); text=path.read_text(encoding='utf-8'); needle='<script type="module">'
+          if needle not in text: raise SystemExit('ERROR: module-script insertion point not found')
+          path.write_text(text.replace(needle,'<script src="./ui-enhancements.js"></script>\n<script type="module">',1),encoding='utf-8')
           PY
           printf '%s\n' "$GITHUB_SHA" > _site/DEPLOYED_COMMIT.txt
-
       - name: Validate deployable artifact
         shell: bash
         run: |
           set -euxo pipefail
-          for file in index.html life.mjs patterns.mjs toolbox.mjs radial.mjs ui-enhancements.js DEPLOYED_COMMIT.txt; do
-            test -s "_site/$file" || { echo "ERROR: required deploy file missing or empty: $file"; exit 1; }
-          done
-          grep -q 'type="module"' _site/index.html || { echo 'ERROR: built index has no module script'; exit 1; }
-          grep -q 'ui-enhancements.js' _site/index.html || { echo 'ERROR: built index does not load UI enhancements'; exit 1; }
-          grep -q 'v0.4.2' _site/ui-enhancements.js || { echo 'ERROR: expected visible version marker missing'; exit 1; }
-          grep -q 'colorMode' _site/ui-enhancements.js || { echo 'ERROR: color selector missing'; exit 1; }
+          for file in index.html life.mjs patterns.mjs toolbox.mjs radial.mjs ui-enhancements.js DEPLOYED_COMMIT.txt; do test -s "_site/$file" || exit 1; done
+          grep -q 'v0.5.0' _site/ui-enhancements.js
+          grep -q 'known-patterns' _site/ui-enhancements.js
+          grep -q 'settings-button' _site/ui-enhancements.js
+          grep -q 'pattern-button' _site/ui-enhancements.js
+          grep -q 'colorMode' _site/ui-enhancements.js
           test "$(cat _site/DEPLOYED_COMMIT.txt)" = "$GITHUB_SHA"
-
       - name: Upload exact Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-
       - name: Failure summary
         if: failure()
-        shell: bash
         run: |
           echo '## CI FAILED' >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo "- Event: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ref: ${{ github.ref }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          if [ -f test-output.log ]; then
-            echo '### Test output' >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            tail -n 120 test-output.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Success summary
-        if: success()
-        run: |
-          echo '## CI PASSED' >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit ${{ github.sha }} passed tests and produced the deploy artifact." >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          [ ! -f test-output.log ] || tail -n 120 test-output.log >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Deploy exact tested artifact
@@ -119,26 +79,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
+      - uses: actions/configure-pages@v5
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
       - name: Mark deployment failure on commit
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail-with-body -sS -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            -d '{"state":"failure","context":"pages/deployed","description":"GitHub Pages deployment failed"}'
-
+          curl --fail-with-body -sS -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" -d '{"state":"failure","context":"pages/deployed","description":"GitHub Pages deployment failed"}'
       - name: Mark deployment success on commit
         if: success()
         env:
@@ -146,31 +96,7 @@ jobs:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           python - <<'PY' > status.json
-          import json, os
-          print(json.dumps({
-              "state": "success",
-              "context": "pages/deployed",
-              "description": "Exact tested artifact deployed to GitHub Pages",
-              "target_url": os.environ["PAGE_URL"]
-          }))
+          import json,os
+          print(json.dumps({'state':'success','context':'pages/deployed','description':'Exact tested artifact deployed to GitHub Pages','target_url':os.environ['PAGE_URL']}))
           PY
-          curl --fail-with-body -sS -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            --data-binary @status.json
-
-      - name: Deployment failure summary
-        if: failure()
-        run: |
-          echo '## PAGES DEPLOY FAILED' >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Deployment success summary
-        if: success()
-        run: |
-          echo '## PAGES DEPLOYED' >> "$GITHUB_STEP_SUMMARY"
-          echo "URL: ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          curl --fail-with-body -sS -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" --data-binary @status.json
