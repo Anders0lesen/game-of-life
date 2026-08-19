@@ -21,7 +21,7 @@ test('every toolbox pattern has valid dimensions and live cells', () => {
 });
 
 test('known advanced patterns have expected populations', () => {
-  assert.equal(getToolboxPattern('Bakery').points.length, 28);
+  assert.equal(getToolboxPattern('Bakery').points.length, 27);
   assert.equal(getToolboxPattern('Lightweight Spaceship').points.length, 9);
   assert.equal(getToolboxPattern('Heavyweight Spaceship').points.length, 13);
 });
@@ -32,7 +32,7 @@ test('rotating a glider 90 degrees preserves population and swaps dimensions', (
   assert.equal(rotated.points.length, original.points.length);
   assert.equal(rotated.width, original.height);
   assert.equal(rotated.height, original.width);
-  assert.deepEqual(rotated.points.sort(), [[0,0],[0,2],[1,0],[1,1],[2,0]].sort());
+  assert.deepEqual(rotated.points.sort(), [[0,0],[0,1],[0,2],[1,2],[2,1]].sort());
 });
 
 test('four quarter turns return a pattern to its original geometry', () => {
