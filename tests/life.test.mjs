@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findRepeatPeriod, gridsEqual, nextGeneration, parseRule, population } from '../life.mjs';
+import { CELL_FATE, classifyCellFates, findRepeatPeriod, gridsEqual, nextGeneration, parseRule, population } from '../life.mjs';
 
 const grid = (rows) => {
   const height = rows.length;
@@ -88,4 +88,23 @@ test('repeat detection ignores states older than the configured lookback', () =>
   const c = new Uint8Array([1, 1]);
   const d = new Uint8Array([0, 0]);
   assert.equal(findRepeatPeriod(a, [a.slice(), b, c, d], 3), 0);
+});
+
+test('fate classifier marks survivors, deaths and births', () => {
+  const g = grid(['.....', '.....', '.###.', '.....', '.....']);
+  const fates = classifyCellFates(g.data, g.width, g.height);
+  const at = (x, y) => fates[y * g.width + x];
+  assert.equal(at(1, 2), CELL_FATE.DIES);
+  assert.equal(at(2, 2), CELL_FATE.SURVIVES);
+  assert.equal(at(3, 2), CELL_FATE.DIES);
+  assert.equal(at(2, 1), CELL_FATE.BORN);
+  assert.equal(at(2, 3), CELL_FATE.BORN);
+  assert.equal(at(0, 0), CELL_FATE.DEAD);
+});
+
+test('fate classifier follows alternative rules too', () => {
+  const g = grid(['.#.', '#..', '...']);
+  const fates = classifyCellFates(g.data, g.width, g.height, '2', '');
+  assert.equal(fates[1 * 3 + 1], CELL_FATE.BORN);
+  assert.equal(fates[0 * 3 + 1], CELL_FATE.DIES);
 });

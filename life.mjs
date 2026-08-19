@@ -4,7 +4,7 @@ export function parseRule(text) {
   return new Set([...text].map(Number));
 }
 
-export function nextGeneration(grid, cols, rows, birthRule = '3', survivalRule = '23') {
+function validateGrid(grid, cols, rows) {
   if (!(grid instanceof Uint8Array)) throw new TypeError('grid must be a Uint8Array');
   if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
     throw new Error('cols and rows must be positive integers');
@@ -12,7 +12,10 @@ export function nextGeneration(grid, cols, rows, birthRule = '3', survivalRule =
   if (grid.length !== cols * rows) {
     throw new Error(`grid size ${grid.length} does not match ${cols}x${rows}`);
   }
+}
 
+export function nextGeneration(grid, cols, rows, birthRule = '3', survivalRule = '23') {
+  validateGrid(grid, cols, rows);
   const birth = parseRule(birthRule);
   const survive = parseRule(survivalRule);
   const next = new Uint8Array(grid.length);
@@ -38,6 +41,24 @@ export function nextGeneration(grid, cols, rows, birthRule = '3', survivalRule =
   }
 
   return next;
+}
+
+export const CELL_FATE = Object.freeze({
+  DEAD: 0,
+  SURVIVES: 1,
+  DIES: 2,
+  BORN: 3
+});
+
+export function classifyCellFates(grid, cols, rows, birthRule = '3', survivalRule = '23') {
+  validateGrid(grid, cols, rows);
+  const next = nextGeneration(grid, cols, rows, birthRule, survivalRule);
+  const fates = new Uint8Array(grid.length);
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i]) fates[i] = next[i] ? CELL_FATE.SURVIVES : CELL_FATE.DIES;
+    else fates[i] = next[i] ? CELL_FATE.BORN : CELL_FATE.DEAD;
+  }
+  return fates;
 }
 
 export function population(grid) {
