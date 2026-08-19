@@ -100,3 +100,107 @@ export function placePattern(grid, cols, rows, pattern, originX, originY) {
   }
   return placed;
 }
+
+function rotatePatternInPlace(pattern) {
+  const rotated = rotatePattern(pattern, 1);
+  pattern.width = rotated.width;
+  pattern.height = rotated.height;
+  pattern.points = rotated.points;
+}
+
+function installRadialInteractions() {
+  if (typeof document === 'undefined' || typeof PointerEvent === 'undefined') return;
+  let down = null, dragging = false, programmaticSelect = false, suppressClick = false;
+  const preview = document.createElement('div');
+  preview.setAttribute('aria-hidden', 'true');
+  Object.assign(preview.style, { position:'fixed', display:'none', pointerEvents:'none', zIndex:'100', opacity:'.72' });
+  document.body.append(preview);
+
+  const previewPattern = (pattern, clientX, clientY) => {
+    const canvas = document.querySelector('#life');
+    const sizeInput = document.querySelector('#cellSize');
+    if (!canvas || !sizeInput) return false;
+    const rect = canvas.getBoundingClientRect();
+    const cell = Math.max(1, Number(sizeInput.value) || 14);
+    const inside = clientX >= rect.left && clientX < rect.right && clientY >= rect.top && clientY < rect.bottom;
+    const x = Math.floor((clientX - rect.left) / cell), y = Math.floor((clientY - rect.top) / cell);
+    const originX = x - Math.floor(pattern.width / 2), originY = y - Math.floor(pattern.height / 2);
+    const width = pattern.width * cell, height = pattern.height * cell;
+    preview.style.left = `${inside ? rect.left + originX * cell : clientX - width / 2}px`;
+    preview.style.top = `${inside ? rect.top + originY * cell : clientY - height / 2}px`;
+    preview.style.width = `${width}px`;
+    preview.style.height = `${height}px`;
+    preview.style.display = 'block';
+    preview.style.border = inside ? '1px solid rgba(103,232,249,.8)' : '1px solid rgba(239,68,68,.7)';
+    preview.style.background = 'rgba(5,7,10,.55)';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox', `0 0 ${pattern.width} ${pattern.height}`);
+    svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+    for (const [px, py] of pattern.points) {
+      const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x', px + .08); r.setAttribute('y', py + .08); r.setAttribute('width','.84'); r.setAttribute('height','.84');
+      r.setAttribute('fill', inside ? '#67e8f9' : '#ef4444'); svg.append(r);
+    }
+    preview.replaceChildren(svg);
+    return inside;
+  };
+
+  document.addEventListener('pointerdown', e => {
+    const button = e.target.closest?.('.radial-item[data-tool]');
+    if (!button || button.dataset.tool === 'Draw') return;
+    down = { button, name: button.dataset.tool, x:e.clientX, y:e.clientY, pointerId:e.pointerId };
+    dragging = false;
+  }, true);
+
+  document.addEventListener('pointermove', e => {
+    if (!down || e.pointerId !== down.pointerId) return;
+    if (!dragging && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 9) return;
+    dragging = true;
+    const pattern = getToolboxPattern(down.name);
+    previewPattern(pattern, e.clientX, e.clientY);
+    e.preventDefault();
+  }, { capture:true, passive:false });
+
+  document.addEventListener('pointerup', e => {
+    if (!down || e.pointerId !== down.pointerId) return;
+    const finished = down;
+    down = null;
+    preview.style.display = 'none';
+    if (!dragging) return;
+    dragging = false;
+    suppressClick = true;
+    const canvas = document.querySelector('#life');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX >= rect.right || e.clientY < rect.top || e.clientY >= rect.bottom) return;
+    programmaticSelect = true;
+    finished.button.click();
+    programmaticSelect = false;
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY, pointerId:999, pointerType:e.pointerType || 'touch' }));
+  }, true);
+
+  document.addEventListener('pointercancel', () => { down = null; dragging = false; preview.style.display = 'none'; }, true);
+
+  document.addEventListener('click', e => {
+    const button = e.target.closest?.('.radial-item[data-tool]');
+    if (!button || button.dataset.tool === 'Draw') return;
+    if (suppressClick && !programmaticSelect) {
+      suppressClick = false;
+      e.preventDefault(); e.stopImmediatePropagation();
+      return;
+    }
+    if (programmaticSelect) return;
+    if (button.classList.contains('selected')) {
+      const pattern = getToolboxPattern(button.dataset.tool);
+      rotatePatternInPlace(pattern);
+      const icon = button.querySelector('svg');
+      if (icon) icon.style.transform = `rotate(90deg)`;
+      console.log('[GameOfLife]', 'pattern rotated', { name:pattern.name, width:pattern.width, height:pattern.height });
+    }
+  }, true);
+
+  const sizeInput = document.querySelector('#cellSize');
+  if (sizeInput) sizeInput.min = '4';
+}
+
+if (typeof window !== 'undefined') queueMicrotask(installRadialInteractions);
