@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test + diagnostics
+    name: Test + build deploy artifact
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,27 +39,52 @@ jobs:
         with:
           node-version: 22
 
-      - name: Show runtime versions
-        run: |
-          node --version
-          npm --version
-
       - name: Run unit tests
         shell: bash
         run: |
           set -o pipefail
           node --test tests/*.test.mjs 2>&1 | tee test-output.log
 
-      - name: Validate deployable site
+      - name: Validate enhancement JavaScript
+        run: node --check ui-enhancements.js
+
+      - name: Build exact Pages artifact
         shell: bash
         run: |
           set -euxo pipefail
-          for file in index.html life.mjs patterns.mjs toolbox.mjs radial.mjs; do
-            test -s "$file" || { echo "ERROR: required site file missing or empty: $file"; exit 1; }
+          rm -rf _site
+          mkdir _site
+          cp index.html life.mjs patterns.mjs toolbox.mjs radial.mjs ui-enhancements.js _site/
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('_site/index.html')
+          text = path.read_text(encoding='utf-8')
+          needle = '<script type="module">'
+          if needle not in text:
+              raise SystemExit('ERROR: module-script insertion point not found')
+          text = text.replace(needle, '<script src="./ui-enhancements.js"></script>\n<script type="module">', 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          printf '%s\n' "$GITHUB_SHA" > _site/DEPLOYED_COMMIT.txt
+
+      - name: Validate deployable artifact
+        shell: bash
+        run: |
+          set -euxo pipefail
+          for file in index.html life.mjs patterns.mjs toolbox.mjs radial.mjs ui-enhancements.js DEPLOYED_COMMIT.txt; do
+            test -s "_site/$file" || { echo "ERROR: required deploy file missing or empty: $file"; exit 1; }
           done
-          grep -q 'type="module"' index.html || { echo 'ERROR: index.html has no module script'; exit 1; }
-          grep -q 'life.mjs' index.html || { echo 'ERROR: index.html does not import life.mjs'; exit 1; }
-          grep -q 'toolbox.mjs' index.html || { echo 'ERROR: index.html does not import toolbox.mjs'; exit 1; }
+          grep -q 'type="module"' _site/index.html || { echo 'ERROR: built index has no module script'; exit 1; }
+          grep -q 'ui-enhancements.js' _site/index.html || { echo 'ERROR: built index does not load UI enhancements'; exit 1; }
+          grep -q 'v0.4.2' _site/ui-enhancements.js || { echo 'ERROR: expected visible version marker missing'; exit 1; }
+          grep -q 'colorMode' _site/ui-enhancements.js || { echo 'ERROR: color selector missing'; exit 1; }
+          test "$(cat _site/DEPLOYED_COMMIT.txt)" = "$GITHUB_SHA"
+
+      - name: Upload exact Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
 
       - name: Failure summary
         if: failure()
@@ -76,36 +101,25 @@ jobs:
             echo '```text' >> "$GITHUB_STEP_SUMMARY"
             tail -n 120 test-output.log >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Failure happened before unit-test output was produced. Open the first red step above.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Success summary
         if: success()
-        shell: bash
         run: |
           echo '## CI PASSED' >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit ${{ github.sha }} passed tests and deployable-site validation." >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit ${{ github.sha }} passed tests and produced the deploy artifact." >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    name: Deploy Pages
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    name: Deploy exact tested artifact
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -113,15 +127,12 @@ jobs:
 
       - name: Deployment failure summary
         if: failure()
-        shell: bash
         run: |
           echo '## PAGES DEPLOY FAILED' >> "$GITHUB_STEP_SUMMARY"
           echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo 'Open the first red deployment step above; its full error is preserved in the job log.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deployment success summary
         if: success()
-        shell: bash
         run: |
           echo '## PAGES DEPLOYED' >> "$GITHUB_STEP_SUMMARY"
           echo "URL: ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
